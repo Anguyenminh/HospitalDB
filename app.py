@@ -17,96 +17,144 @@ def get_conn():
         database="apc_db"
     )
 
+# Tables exposed in the sidebar index, in the order they're listed.
+TABLES = [
+    "patient",
+    "physician",
+    "consultation",
+    "hospital",
+    "hospital_location",
+    "diagnosis",
+    "coveragepolicy",
+    "speciality",
+    "physician_speciality",
+]
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-import mysql.connector
+# Shared visual language for both pages: a quiet records-ledger look
+# (slate ink, one clinical-green accent, monospace for tabular data)
+# rather than a generic centered card.
+BASE_STYLE = """
+    :root {
+        --ink: #1C2733;
+        --paper: #FAFAF8;
+        --panel: #FFFFFF;
+        --line: #E1DED6;
+        --muted: #6B7280;
+        --accent: #3E6D5C;
+        --accent-soft: #E9EFEC;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+        background: var(--paper);
+        color: var(--ink);
+        display: flex;
+        min-height: 100vh;
+    }
+    a { color: var(--accent); }
+    .sidebar {
+        width: 240px;
+        flex-shrink: 0;
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        padding: 32px 24px;
+    }
+    .sidebar .brand {
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        margin: 0 0 4px;
+    }
+    .sidebar h2 {
+        font-size: 20px;
+        margin: 0 0 28px;
+        line-height: 1.3;
+    }
+    .sidebar nav ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .sidebar nav li + li { margin-top: 2px; }
+    .sidebar nav a {
+        display: block;
+        padding: 7px 10px;
+        margin: 0 -10px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+        font-size: 13px;
+        color: var(--ink);
+        border-left: 2px solid transparent;
+    }
+    .sidebar nav a:hover {
+        background: var(--accent-soft);
+        border-left-color: var(--accent);
+        color: var(--accent);
+    }
+    .sidebar nav a.active {
+        background: var(--accent-soft);
+        border-left-color: var(--accent);
+        color: var(--accent);
+    }
+    .sidebar .docs-link {
+        display: inline-block;
+        margin-top: 32px;
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: none;
+        border-bottom: 1px solid var(--line);
+    }
+    .sidebar .docs-link:hover { color: var(--accent); border-color: var(--accent); }
+    main {
+        flex: 1;
+        padding: 48px 56px;
+        max-width: 1100px;
+    }
+    main h1 {
+        font-size: 30px;
+        margin: 0 0 8px;
+        font-weight: 600;
+    }
+    main .lede {
+        color: var(--muted);
+        font-size: 16px;
+        margin: 0 0 32px;
+        max-width: 60ch;
+    }
+"""
 
-app = FastAPI()
-
-def get_conn():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="apc_db"
-    )
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return """
+    nav_items = "".join(
+        f'<li><a href="/table/{t}">{t.replace("_", " ").title()}</a></li>'
+        for t in TABLES
+    )
+    return f"""
     <html>
         <head>
-            <title>APC Database API</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
-                    padding: 40px;
-                }
-                .container {
-                    background: white;
-                    width: 600px;
-                    margin: auto;
-                    padding: 25px;
-                    border-radius: 10px;
-                    box-shadow: 0px 0px 10px rgba(0,0,0,0.15);
-                }
-                h1 {
-                    text-align: center;
-                    color: #333;
-                }
-                ul {
-                    list-style: none;
-                    padding: 0;
-                }
-                li {
-                    margin: 10px 0;
-                }
-                a {
-                    text-decoration: none;
-                    font-size: 18px;
-                    color: #0066cc;
-                }
-                a:hover {
-                    text-decoration: underline;
-                }
-                .footer {
-                    margin-top: 25px;
-                    text-align: center;
-                }
-            </style>
+            <title>APC Records</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+            <style>{BASE_STYLE}</style>
         </head>
-
         <body>
-            <div class="container">
-                <h1>APC Database API</h1>
-                <p style="text-align:center;">Select a table to display:</p>
-
-                <ul>
-                    <li><a href="/table/patient">Patient Table</a></li>
-                    <li><a href="/table/physician">Physician Table</a></li>
-                    <li><a href="/table/consultation">Consultation Table</a></li>
-                    <li><a href="/table/hospital">Hospital Table</a></li>
-                    <li><a href="/table/hospital_location">Hospital Location Table</a></li>
-                    <li><a href="/table/diagnosis">Diagnosis Table</a></li>
-                    <li><a href="/table/coveragepolicy">Coverage Policy Table</a></li>
-                    <li><a href="/table/speciality">Speciality</a></li>
-                    <li><a href="/table/physician_speciality">Physician Speciality Table</a></li>
-                </ul>
-
-                <div class="footer">
-                    <p>View API documentation:</p>
-                    <a href="/docs">Swagger UI</a>
-                </div>
-            </div>
+            <aside class="sidebar">
+                <p class="brand">APC Records</p>
+                <h2>Table Index</h2>
+                <nav><ul>{nav_items}</ul></nav>
+                <a class="docs-link" href="/docs">API documentation &rarr;</a>
+            </aside>
+            <main>
+                <h1>Ambulatory Patient Care</h1>
+                <p class="lede">Select a table from the index to view its records.</p>
+            </main>
         </body>
     </html>
     """
 
-
-
-from fastapi.responses import HTMLResponse
 
 @app.get("/table/{table_name}", response_class=HTMLResponse)
 def get_table(table_name: str):
@@ -118,78 +166,79 @@ def get_table(table_name: str):
         cols = [desc[0] for desc in cur.description]
         conn.close()
 
-        table_html = "<table><tr>"
-        for col in cols:
-            table_html += f"<th>{col}</th>"
-        table_html += "</tr>"
+        header_html = "".join(f"<th>{col}</th>" for col in cols)
+        body_html = "".join(
+            "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>"
+            for row in rows
+        )
 
-        for row in rows:
-            table_html += "<tr>"
-            for cell in row:
-                table_html += f"<td>{cell}</td>"
-            table_html += "</tr>"
-
-        table_html += "</table>"
+        nav_items = "".join(
+            f'<li><a class="{"active" if t == table_name else ""}" '
+            f'href="/table/{t}">{t.replace("_", " ").title()}</a></li>'
+            for t in TABLES
+        )
 
         return f"""
         <html>
             <head>
-                <title>{table_name.title()} Table</title>
+                <title>{table_name.title()} — APC Records</title>
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
                 <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        background-color: #f4f4f4;
-                        padding: 40px;
+                    {BASE_STYLE}
+                    .meta {{
+                        font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+                        font-size: 12px;
+                        color: var(--muted);
+                        margin: 0 0 24px;
                     }}
-                    .container {{
-                        background: white;
-                        width: 900px;
-                        margin: auto;
-                        padding: 25px;
-                        border-radius: 10px;
-                        box-shadow: 0px 0px 10px rgba(0,0,0,0.15);
-                    }}
-                    h1 {{
-                        text-align: center;
-                        color: #333;
+                    .table-wrap {{
+                        border: 1px solid var(--line);
+                        border-radius: 6px;
+                        overflow: auto;
+                        background: var(--panel);
                     }}
                     table {{
                         width: 100%;
                         border-collapse: collapse;
-                        margin-top: 20px;
+                        font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+                        font-size: 13px;
                     }}
                     th, td {{
-                        padding: 10px;
-                        border: 1px solid #ccc;
+                        padding: 10px 16px;
+                        border-bottom: 1px solid var(--line);
                         text-align: left;
+                        white-space: nowrap;
                     }}
-                    th {{
-                        background-color: #e3e3e3;
+                    thead th {{
+                        background: var(--accent-soft);
+                        color: var(--accent);
+                        font-weight: 500;
+                        border-bottom: 1px solid var(--line);
+                        position: sticky;
+                        top: 0;
                     }}
-                    a {{
-                        color: #0066cc;
-                        text-decoration: none;
-                        font-size: 18px;
-                    }}
-                    a:hover {{
-                        text-decoration: underline;
-                    }}
-                    .back {{
-                        margin-top: 20px;
-                        text-align: center;
-                    }}
+                    tbody tr:last-child td {{ border-bottom: none; }}
+                    tbody tr:hover {{ background: var(--accent-soft); }}
                 </style>
             </head>
-
             <body>
-                <div class="container">
-                    <h1>{table_name.replace("_", " ").title()} Table</h1>
-                    {table_html}
-
-                    <div class="back">
-                        <a href="/">⬅ Back to Menu</a>
+                <aside class="sidebar">
+                    <p class="brand">APC Records</p>
+                    <h2>Table Index</h2>
+                    <nav><ul>{nav_items}</ul></nav>
+                    <a class="docs-link" href="/docs">API documentation &rarr;</a>
+                </aside>
+                <main>
+                    <h1>{table_name.replace("_", " ").title()}</h1>
+                    <p class="meta">{len(rows)} row{"s" if len(rows) != 1 else ""} &middot; {len(cols)} columns</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr>{header_html}</tr></thead>
+                            <tbody>{body_html}</tbody>
+                        </table>
                     </div>
-                </div>
+                </main>
             </body>
         </html>
         """
