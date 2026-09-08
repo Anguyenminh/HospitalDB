@@ -1,37 +1,4 @@
--- =============================================================================
--- Foreign key constraints for apc_db, based on the ER diagram.
---
--- IMPORTANT: check each column name below against your actual tables
--- (phpMyAdmin -> table -> Structure) before running these. Column names
--- must match EXACTLY (case included). Adjust any that differ.
---
--- ON UPDATE CASCADE  -> if a parent's key changes (e.g. a physician's PID),
---                       every table that references it updates automatically.
--- ON DELETE RESTRICT -> stops you from deleting a row that other tables still
---                       depend on (e.g. a physician who has consultations),
---                       so you don't accidentally orphan data.
--- ON DELETE CASCADE   -> used only for pure "detail" rows that have no
---                       meaning without their parent (a hospital's location,
---                       a diagnosis tied to one consultation, a physician's
---                       speciality link) — deleting the parent removes these
---                       automatically instead of leaving orphaned rows.
---
--- Run each block once. If you need to re-run after fixing a mistake, drop
--- the constraint first:
---   ALTER TABLE table_name DROP FOREIGN KEY constraint_name;
--- =============================================================================
 
--- Make sure every table below uses the InnoDB engine — foreign keys do not
--- work on MyISAM. Uncomment and run these first if unsure:
--- ALTER TABLE patient ENGINE=InnoDB;
--- ALTER TABLE physician ENGINE=InnoDB;
--- ALTER TABLE consultation ENGINE=InnoDB;
--- ALTER TABLE hospital ENGINE=InnoDB;
--- ALTER TABLE hospital_location ENGINE=InnoDB;
--- ALTER TABLE diagnosis ENGINE=InnoDB;
--- ALTER TABLE coveragepolicy ENGINE=InnoDB;
--- ALTER TABLE speciality ENGINE=InnoDB;
--- ALTER TABLE physician_speciality ENGINE=InnoDB;
 
 -- Physician belongs to a Hospital (physician.HID -> hospital.HID)
 ALTER TABLE physician
